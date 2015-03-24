@@ -1,5 +1,7 @@
 
-%%% CWT-Prolog Server
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% CWT-Prolog Database API %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 :- module(database,
@@ -15,15 +17,16 @@
      user(name:atom).
 
 
+%% attach_db(+File:atom) is det.
+
 attach_db(File) :-
   db_attach(File, []).
 
 
-
 %% login(+User:atom, -Response:string) is det.
 %
-% A user has attempted to login. The status of the login will be unified with
-% the appropriate Response.
+% A user has attempted to login via login USERNAME. The status of the login will
+% be unified with the appropriate Response.
 
 login(User, Response) :-
   (
@@ -38,9 +41,9 @@ login(User, Response) :-
 
 %% logout(+User:atom, -Response:string) is det.
 %
-% A user has attempted to logout. The status of the logout will be unified with
-% the appropriate Response. If the user already exists then response should be
-% be success and User will be retracted from the database.
+% A user has attempted to logout via logout USERNAME. The status of the logout
+% will be unified with the appropriate Response. If the user already exists then
+% response should be be success and User will be retracted from the database.
 
 logout(User, Response) :-
   (
@@ -72,8 +75,7 @@ current_user(User) :-
 %% add_user(+User:string) is semidet.
 
 add_user(User) :-
-  Add_sync =
-    (\User^(assert_user(User), db_sync(reload))),
+  Add_sync = (\User^(assert_user(User), db_sync(reload))),
   with_mutex(user_db, call(Add_sync, User)).
 
 
