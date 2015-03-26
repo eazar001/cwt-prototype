@@ -15,11 +15,12 @@
 :- dynamic port/1.
 
 :- http_handler(/, status, []).
-:- http_handler('/query', query, []).
+:- http_handler('/login', login, []).
+:- http_handler('/logout', logout, []).
 
 main :-
   attach_db('store.db'),
-  server(num_here).
+  server(port_here).
 
 
 server(Port) :-
@@ -34,16 +35,17 @@ status(_Request) :-
   format('Content-type: text/plain~n~n'),
   format('Server is up.~n').
 
-
-query(Query) :-
-  http_parameters(Query, [login(User, [string, optional(true)])]),
+login(Query) :-
+  http_parameters(Query, [name(User, [string])]),
   login(User, Status),
   format('Content-type: text/plain~n~n'),
   format('~s', [Status]).
 
-
-
-
+logout(Query) :-
+  http_parameters(Query, [name(User, [string])]),
+  logout(User, Status),
+  format('Content-type: text/plain~n~n'),
+  format('~s', [Status]).
 
 disconnect :-
   port(Port),

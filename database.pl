@@ -81,7 +81,7 @@ add_user(User) :-
   with_mutex(user_db, call(Add_sync, User)).
 
 
-%% remove_user(+User:atom) is semidet.
+%% remove_user(+User:string) is semidet.
 
 remove_user(User) :-
   Remove_sync =
@@ -94,13 +94,13 @@ remove_user(User) :-
 %--------------------------------------------------------------------------------%
 
 
-%% login_response(+User:atom, -Response:string) is det.
+%% login_response(+Status:atom, -Response:string) is det.
 
 login_response(no_user, "{ status:ok }").
 login_response(user_exists, "{ status:fail }").
 
 
-%% logout_response(+User:atom, -Response:string) is det.
+%% logout_response(+Status:atom, -Response:string) is det.
 
 logout_response(user_exists, "{ status:ok }").
 logout_response(no_user, "{ status:fail }").
