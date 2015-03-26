@@ -5,16 +5,18 @@
 
 
 :- module(database,
-     [ attach_db/1 ]).
+     [ attach_db/1
+      ,login/2
+      ,logout/2 ]).
 
 
 :- use_module(library(persistency)).
-:- use_module(library(mavis)).
-:- use_module(library(lambda)).
-
 
 :- persistent
-     user(name:atom).
+     user(name:string).
+
+
+%--------------------------------------------------------------------------------%
 
 
 %% attach_db(+File:atom) is det.
@@ -23,7 +25,7 @@ attach_db(File) :-
   db_attach(File, []).
 
 
-%% login(+User:atom, -Response:string) is det.
+%% login(+User:string, -Response:string) is det.
 %
 % A user has attempted to login via login USERNAME. The status of the login will
 % be unified with the appropriate Response.
@@ -39,7 +41,7 @@ login(User, Response) :-
   ).
 
 
-%% logout(+User:atom, -Response:string) is det.
+%% logout(+User:string, -Response:string) is det.
 %
 % A user has attempted to logout via logout USERNAME. The status of the logout
 % will be unified with the appropriate Response. If the user already exists then
@@ -61,7 +63,7 @@ logout(User, Response) :-
 %--------------------------------------------------------------------------------%
 
 
-%% current_user(+User:atom) is semidet.
+%% current_user(+User:string) is semidet.
 
 current_user(User) :-
   with_mutex(user_db, user(User)).
