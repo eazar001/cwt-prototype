@@ -7,7 +7,10 @@
 :- module(database,
      [ attach_db/1
       ,login/2
-      ,logout/2 ]).
+      ,logout/2
+      ,create_game/5
+      ,join_game/3
+      ,add_action/3 ]).
 
 
 :- use_module(library(persistency)).
@@ -56,6 +59,51 @@ logout(User, Response) :-
   ;
      logout_response(no_user, Response)
   ).
+
+
+%% create_game(+User, +Pos, +Gamename, +Playerlimit, +Teamlayout) is det.
+%
+% creategame USERNAME:POSITION:GAMENAME:PLAYERLIMIT:TEAMLAYOUT
+% Create a game along with the host player for the game.
+% Pos = The player army faction position in the game (the player order)
+% Gamename = Title of the game
+% Playerlimit = Total amount of players that can be in the game
+% Teamlaout = Layout of the teams {"AB" would mean p1 is Team A and p2 is Team B.
+
+create_game(User, Pos, Gamename, Playerlimit, Teamlayout) :-
+  true.
+
+
+% join_game(+User, +Pos, +Gamename) is det.
+%
+% joingame USERNAME:POSITION:GAMENAME
+% This allows a player to join an already created game.
+
+join_game(User, Pos, Gamename) :-
+  true.
+
+
+% leave_game(+User, +Gamename) is det.
+%
+% leavegame USERNAME:GAMENAME
+% In an inactive game, it'll remove the player from the list of players..
+% In an active game, it'll change a player to inactive, making him/her unable to
+% take any turns.
+
+leave_game(User, Gamename) :-
+  true.
+
+
+%% add_action(+User, +Gamename, +Actions) is det.
+%
+% addaction USERNAME:GAMENAME:P(0):P(1):...:P(n)
+% This allows to player to push actions into the action list. An empty list will
+% change to the next player turn.
+% P(n): A section of a string, int, or float array. Can extend to as many as
+% needed. 
+
+add_action(User, Gamename, Actions) :-
+  true.
 
 
 %--------------------------------------------------------------------------------%

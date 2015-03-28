@@ -25,30 +25,19 @@
 :- http_handler('/logout', logout, []).
 
 
-%% start_server(+File:atom, +Port:integer) is semidet.
+%% start_server(+File:atom, +Port:between(1, 0xffff)) is semidet.
 %
 % Attach to the specified database file, and start the server on the specified
 % port.
 
 start_server(File, Port) :-
-  between(1, 0xffff, Port),
+  must_be(between(1, 0xffff), Port),
   attach_db(File),
-  server(Port).
-
-
-%% server(+Port:integer)
-%
-% Starts server on requested port. Asserts port at top level.
-
-server(Port) :-
-  (  port(Port)
-  -> true
-  ;  asserta(port(Port))
-  ),
+  asserta(port(Port)),
   http_server(http_dispatch, [port(Port)]).
 
 
-%% server_status is det.
+%% server_status(+Request) is det.
 %
 % Friendly message to let client know that the server is up.
 
@@ -97,8 +86,5 @@ login(Query) :-
 logout(Query) :-
   http_parameters(Query, [name(User, [string])]),
   send_status(logout $ User).
-
-
-
 
 
