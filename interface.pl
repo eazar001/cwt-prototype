@@ -13,6 +13,14 @@
 :- use_module(database).
 
 
+% TBD: Implement connection to ping/1, create_game/5, join_game/3, resign_game/2,
+% add_action/3.
+
+
+% Basic header for plain text
+header(text/plain, 'Content-type: text/plain~n~n').
+
+
 %--------------------------------------------------------------------------------%
 % Main Interface
 %--------------------------------------------------------------------------------%
@@ -23,6 +31,7 @@
 :- http_handler(/, server_status, []).
 :- http_handler('/login', login, []).
 :- http_handler('/logout', logout, []).
+:- http_handler('/ping', ping, []).
 
 
 %% start_server(+File:atom, +Port:between(1, 0xffff)) is semidet.
@@ -42,7 +51,7 @@ start_server(File, Port) :-
 % Friendly message to let client know that the server is up.
 
 server_status(_Request) :-
-  format('Content-type: text/plain~n~n'),
+  format(header $ text/plain),
   format('Server is up.~n').
 
 
@@ -51,7 +60,7 @@ server_status(_Request) :-
 % Takes a response status and sends the information to the client.
 
 send_status(Status) :-
-  format('Content-type: text/plain~n~n'),
+  format(header $ text/plain),
   format('~s', [Status]).
 
 
@@ -86,5 +95,15 @@ login(Query) :-
 logout(Query) :-
   http_parameters(Query, [name(User, [string])]),
   send_status(logout $ User).
+
+
+%% ping(+Query:compound) is det.
+%
+% Receive ping from client with username.
+
+ping(Query) :-
+  http_parameters(Query, [name(User, [string])]),
+  send_status(ping $ User).
+
 
 
