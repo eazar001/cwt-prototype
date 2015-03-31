@@ -21,10 +21,10 @@
      user(name:string).
 
 :- persistent
-     game(game:string, host:string, limit:integer, layout:string).
+     game(game:string, host:string, limit:between(1,4), layout:string).
 
 :- persistent
-     player(name:string, game:string, pos:string).
+     player(name:string, game:string, pos:between(1,4)).
 
 %--------------------------------------------------------------------------------%
 
@@ -83,27 +83,28 @@ create_game(User, Pos, Game, Limit, Layout, Response) :-
   with_mutex(user_db, add_game(User, Pos, Game, Limit, Layout, Response)).
 
 
-% join_game(+User, +Pos, +Gamename) is det.
+%% join_game(+User:string, +Pos:between(1,4), +Game:string,
+%%   -Response:string) is det.
 %
 % joingame USERNAME:POSITION:GAMENAME
 % This allows a player to join an already created game.
 
-join_game(_User, _Pos, _Gamename) :-
-  true.
+join_game(User, Pos, Game, Response) :-
+  with_mutex(game_db, join_user(User, Pos, Game, Response)).
 
 
-% resign_game(+User, +Gamename) is det.
+%% resign_game(+User:string, +Game:string, -Response:string) is det.
 %
 % leavegame USERNAME:GAMENAME
 % In an inactive game, it'll remove the player from the list of players..
 % In an active game, it'll change a player to inactive, making him/her unable to
 % take any turns.
 
-resign_game(_User, _Gamename) :-
-  true.
+resign_game(User, Game, Response) :-
+  with_mutex(game_db, resign_user(User, Game, Response)).
 
 
-%% add_action(+User, +Gamename, +Actions) is det.
+%% add_action(+User:string, +Game:string, +Actions:list, -Response:string) is det.
 %
 % addaction USERNAME:GAMENAME:P(0):P(1):...:P(n)
 % This allows to player to push actions into the action list. An empty list will
@@ -111,8 +112,8 @@ resign_game(_User, _Gamename) :-
 % P(n): A section of a string, int, or float array. Can extend to as many as
 % needed.
 
-add_action(_User, _Gamename, _Actions) :-
-  true.
+add_action(User, Game, Actions, Response) :-
+  with_mutex(game_db, add_game_action(User, Game, Actions, Response)).
 
 
 %% active_game(+Layout) is semidet.
@@ -122,7 +123,15 @@ add_action(_User, _Gamename, _Actions) :-
 active_game([H|Layout]) :-
   \+maplist(call(=,H), Layout).
 
-			
+
+%% with_game_db(:Goal) is semidet.
+%
+% Execute any Goal while holding mutex for sections critical to game data only.
+
+with_game_db(Goal) :-
+  with_mutex(game_db, Goal).
+
+
 %--------------------------------------------------------------------------------%
 % Reads
 %--------------------------------------------------------------------------------%
@@ -134,11 +143,6 @@ current_user(User) :-
   user(User).
 
 
-%--------------------------------------------------------------------------------%
-% Writes
-%--------------------------------------------------------------------------------%
-
-
 %% check_ping(+User:string, -Response:string) is det.
 
 check_ping(User, Response) :-
@@ -146,6 +150,17 @@ check_ping(User, Response) :-
   -> response(success, Response)
   ;  response(failure, Response)
   ).
+
+
+%% current_game(+Game:string) is semidet.
+
+current_game(Game) :-
+  game(Game, _, _, _).
+
+
+%--------------------------------------------------------------------------------%
+% Writes
+%--------------------------------------------------------------------------------%
 
 
 %% add_user(+User:string, -Response:string) is det.
@@ -177,20 +192,6 @@ remove_user(User, Response) :-
   ).
 
 
-%% with_game_db(:Goal) is semidet.
-%
-% Execute any Goal while holding mutex for sections critical to game data only.
-
-with_game_db(Goal) :-
-  with_mutex(game_db, Goal).
-
-
-%% current_game(+Game:string) is semidet.
-
-current_game(Game) :-
-  game(Game, _, _, _).
-
-
 %% add_game(+User:string, +Pos:between(1,4), +Game:string, +Limit:between(1,4),
 %%   +Layout:string, -Response:string) is det.
 
@@ -203,10 +204,17 @@ add_game(User, Pos, Game, Limit, Layout, Response) :-
 add_game_(User, Pos, Game, Limit, Layout) :-
   current_user(User),
   \+current_game(Game),
-  between(1, 4, Pos),
-  between(1, 4, Limit),
   string_length(Layout, Limit),
   assert_game(Game, User, Limit, Layout).
+
+
+%% join_user(+User:string, +Pos:between(1,4), +Game:string) is det.
+
+join_user(User, Pos, Game) :-
+  true.
+
+
+
 
 
 %--------------------------------------------------------------------------------%
