@@ -9,7 +9,7 @@
       ,login/2
       ,logout/2
       ,ping/2
-      ,create_game/5
+      ,create_game/6
       ,join_game/3
       ,resign_game/2
       ,add_action/3 ]).
@@ -20,6 +20,11 @@
 :- persistent
      user(name:string).
 
+:- persistent
+     game(game:string, host:string, limit:integer, layout:string).
+
+:- persistent
+     player(name:string, game:string, pos:string).
 
 %--------------------------------------------------------------------------------%
 
@@ -63,7 +68,8 @@ ping(User, Response) :-
   with_mutex(user_db, check_ping(User, Response)).
 
 
-%% create_game(+User, +Pos, +Gamename, +Playerlimit, +Teamlayout) is det.
+%% create_game(+User:string, +Pos:between(1,4), +Game:string, Limit:between(1,4),
+%%   +Layout:string) is det.
 %
 % creategame USERNAME:POSITION:GAMENAME:PLAYERLIMIT:TEAMLAYOUT
 % Create a game along with the host player for the game.
@@ -71,9 +77,13 @@ ping(User, Response) :-
 % Gamename = Title of the game
 % Playerlimit = Total amount of players that can be in the game
 % Teamlayout = Layout of the teams {"AB" would mean p1 is Team A and p2 is Team B.
+% (thread-safe)
 
-create_game(_User, _Pos, _Gamename, _Playerlimit, _Teamlayout) :-
-  true.
+create_game(User, Pos, Game, Limit, Layout, Response) :-
+  (  with_mutex(user_db, add_game(User, Pos, Game, Limit, Layout))
+  -> response(success, Response)
+  ;  response(failure, Response)
+  ).
 
 
 % join_game(+User, +Pos, +Gamename) is det.
@@ -168,6 +178,35 @@ remove_user(User, Response) :-
   ;
      response(failure, Response)
   ).
+
+
+%% with_game_db(:Goal) is semidet.
+%
+% Execute any Goal while holding mutex for sections critical to game data only.
+
+with_game_db(Goal) :-
+  with_mutex(game_db, Goal).
+
+
+%% current_game(+Game:string) is semidet.
+
+current_game(Game) :-
+  game(Game, _, _, _).
+
+
+%% add_game(+User:string, +Pos:between(1,4), +Game:string, +Limit:between(1,4),
+%%   +Layout:string) is det.
+
+add_game(User, Pos, Game, Limit, Layout) :-
+  with_game_db(add_game_(User, Pos, Game, Limit, Layout)).
+
+add_game_(User, Pos, Game, Limit, Layout) :-
+  current_user(User),
+  \+current_game(Game),
+  between(1, 4, Pos),
+  between(1, 4, Limit),
+  string_length(Layout, Limit),
+  assert_game(Game, User, Limit, Layout).
 
 
 %--------------------------------------------------------------------------------%

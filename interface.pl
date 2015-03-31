@@ -13,8 +13,7 @@
 :- use_module(database).
 
 
-% TBD: Implement connection to ping/1, create_game/5, join_game/3, resign_game/2,
-% add_action/3.
+% TBD: Implement connection to join_game/3, resign_game/2, add_action/3.
 
 
 % Basic header for plain text
@@ -32,6 +31,7 @@ header(text/plain, 'Content-type: text/plain~n~n').
 :- http_handler('/login', login, []).
 :- http_handler('/logout', logout, []).
 :- http_handler('/ping', ping, []).
+:- http_handler('/create_game', create_game, []).
 
 
 %% start_server(+File:atom, +Port:between(1, 0xffff)) is semidet.
@@ -104,6 +104,20 @@ logout(Query) :-
 ping(Query) :-
   http_parameters(Query, [name(User, [string])]),
   send_status(ping $ User).
+
+
+%% create_game(+Query:compound) is det.
+%
+% Create a game if all internal restrictions are met for creation.
+
+create_game(Query) :-
+  http_parameters(Query,
+    [ user(User, [string])
+     ,pos(Pos, [integer])
+     ,game(Game, [string])
+     ,limit(Limit, [integer])
+     ,layout(Layout, [string]) ]),
+  send_status(create_game(User,Pos,Game,Limit) $ Layout).
 
 
 
