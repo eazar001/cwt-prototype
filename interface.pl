@@ -113,9 +113,9 @@ ping(Query) :-
 create_game(Query) :-
   http_parameters(Query,
     [ user(User, [string])
-     ,pos(Pos, [integer])
+     ,pos(Pos, [between(1,4)])
      ,game(Game, [string])
-     ,limit(Limit, [integer])
+     ,limit(Limit, [between(1,4)])
      ,layout(Layout, [string]) ]),
   send_status(create_game(User,Pos,Game,Limit) $ Layout).
 

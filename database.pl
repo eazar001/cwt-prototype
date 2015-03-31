@@ -69,7 +69,7 @@ ping(User, Response) :-
 
 
 %% create_game(+User:string, +Pos:between(1,4), +Game:string, Limit:between(1,4),
-%%   +Layout:string) is det.
+%%   +Layout:string, -Response:string) is det.
 %
 % creategame USERNAME:POSITION:GAMENAME:PLAYERLIMIT:TEAMLAYOUT
 % Create a game along with the host player for the game.
@@ -80,10 +80,7 @@ ping(User, Response) :-
 % (thread-safe)
 
 create_game(User, Pos, Game, Limit, Layout, Response) :-
-  (  with_mutex(user_db, add_game(User, Pos, Game, Limit, Layout))
-  -> response(success, Response)
-  ;  response(failure, Response)
-  ).
+  with_mutex(user_db, add_game(User, Pos, Game, Limit, Layout, Response)).
 
 
 % join_game(+User, +Pos, +Gamename) is det.
@@ -195,10 +192,13 @@ current_game(Game) :-
 
 
 %% add_game(+User:string, +Pos:between(1,4), +Game:string, +Limit:between(1,4),
-%%   +Layout:string) is det.
+%%   +Layout:string, -Response:string) is det.
 
-add_game(User, Pos, Game, Limit, Layout) :-
-  with_game_db(add_game_(User, Pos, Game, Limit, Layout)).
+add_game(User, Pos, Game, Limit, Layout, Response) :-
+  (  with_game_db(add_game_(User, Pos, Game, Limit, Layout))
+  -> response(success, Response)
+  ;  response(failure, Response)
+  ).
 
 add_game_(User, Pos, Game, Limit, Layout) :-
   current_user(User),
