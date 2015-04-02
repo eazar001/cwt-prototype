@@ -10,9 +10,9 @@
       ,logout/2
       ,ping/2
       ,create_game/6
-      ,join_game/3
-      ,resign_game/2
-      ,add_action/3 ]).
+      ,join_game/4
+      ,resign_game/3
+      ,add_action/4 ]).
 
 
 :- use_module(library(persistency)).
@@ -55,7 +55,7 @@ login(User, Response) :-
 % (thread-safe)
 
 logout(User, Response) :-
-  with_mutex(user_db, remove_user(User, Response)).
+  remove_user(User, Response).
 
 
 %% ping(+User:string, -Response:string) is det.
@@ -65,7 +65,10 @@ logout(User, Response) :-
 % (thread-safe)
 
 ping(User, Response) :-
-  with_mutex(user_db, check_ping(User, Response)).
+  (  current_user(User)
+  -> response(success, Response)
+  ;  response(failure, Response)
+  ).
 
 
 %% create_game(+User:string, +Pos:between(1,4), +Game:string, Limit:between(1,4),
@@ -80,7 +83,7 @@ ping(User, Response) :-
 % (thread-safe)
 
 create_game(User, Pos, Game, Limit, Layout, Response) :-
-  with_mutex(user_db, add_game(User, Pos, Game, Limit, Layout, Response)).
+  add_game(User, Pos, Game, Limit, Layout, Response).
 
 
 %% join_game(+User:string, +Pos:between(1,4), +Game:string,
@@ -90,7 +93,7 @@ create_game(User, Pos, Game, Limit, Layout, Response) :-
 % This allows a player to join an already created game.
 
 join_game(User, Pos, Game, Response) :-
-  with_mutex(game_db, join_user(User, Pos, Game, Response)).
+  true.
 
 
 %% resign_game(+User:string, +Game:string, -Response:string) is det.
@@ -101,7 +104,7 @@ join_game(User, Pos, Game, Response) :-
 % take any turns.
 
 resign_game(User, Game, Response) :-
-  with_mutex(game_db, resign_user(User, Game, Response)).
+  true.
 
 
 %% add_action(+User:string, +Game:string, +Actions:list, -Response:string) is det.
@@ -113,7 +116,7 @@ resign_game(User, Game, Response) :-
 % needed.
 
 add_action(User, Game, Actions, Response) :-
-  with_mutex(game_db, add_game_action(User, Game, Actions, Response)).
+  true.
 
 
 %% active_game(+Layout) is semidet.
@@ -143,15 +146,6 @@ current_user(User) :-
   user(User).
 
 
-%% check_ping(+User:string, -Response:string) is det.
-
-check_ping(User, Response) :-
-  (  current_user(User)
-  -> response(success, Response)
-  ;  response(failure, Response)
-  ).
-
-
 %% current_game(+Game:string) is semidet.
 
 current_game(Game) :-
@@ -175,34 +169,32 @@ add_user(User, Response) :-
      db_sync(reload),
      response(success, Response)
   ).
- 
+
 
 %% remove_user(+User:string, -Response:string) is det.
 
 remove_user(User, Response) :-
-  (
-     current_user(User)
-  ->
-     db_sync(gc),
-     retract_user(User),
-     db_sync(reload),
-     response(success, Response)
-  ;
-     response(failure, Response)
+  (  with_mutex(user_db, remove_user_(User))
+  -> response(success, Response)
+  ;  response(failure, Response)
   ).
 
+remove_user_(User) :-
+  db_sync(gc),
+  retract_user(User),
+  db_sync(reload).
 
 %% add_game(+User:string, +Pos:between(1,4), +Game:string, +Limit:between(1,4),
 %%   +Layout:string, -Response:string) is det.
 
 add_game(User, Pos, Game, Limit, Layout, Response) :-
-  (  with_game_db(add_game_(User, Pos, Game, Limit, Layout))
+  current_user(User),
+  (  with_mutex(game_db, add_game_(Pos, Game, Limit, Layout))
   -> response(success, Response)
   ;  response(failure, Response)
   ).
 
-add_game_(User, Pos, Game, Limit, Layout) :-
-  current_user(User),
+add_game_(Pos, Game, Limit, Layout) :-
   \+current_game(Game),
   string_length(Layout, Limit),
   assert_game(Game, User, Limit, Layout).
@@ -212,9 +204,6 @@ add_game_(User, Pos, Game, Limit, Layout) :-
 
 join_user(User, Pos, Game) :-
   true.
-
-
-
 
 
 %--------------------------------------------------------------------------------%
