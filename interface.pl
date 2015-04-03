@@ -33,6 +33,7 @@ header(text/plain, 'Content-type: text/plain~n~n').
 :- http_handler('/logout', logout, []).
 :- http_handler('/ping', ping, []).
 :- http_handler('/create_game', create_game, []).
+:- http_handler('/join_game', join_game, []).
 
 
 %% start_server(+File:atom, +Port:between(1, 0xffff)) is semidet.
@@ -118,7 +119,30 @@ create_game(Query) :-
      ,game(Game, [string])
      ,limit(Limit, [between(1,4)])
      ,layout(Layout, [string]) ]),
-  send_status(create_game(User,Pos,Game,Limit) $ Layout).
+  send_status(create_game(User, Pos, Game, Limit) $ Layout).
 
+
+%% join_game(+Query:compound) is det.
+%
+% Allow a user to join a game if all internal restrictions are met for admission.
+
+join_game(Query) :-
+  http_parameters(Query,
+    [ user(User, [string])
+     ,pos(Pos, [between(1,4)])
+     ,game(Game, [string]) ]),
+  send_status(join_game(User, Pos) $ Game).
+
+
+%% resign_game(+Query:compound) is det.
+%
+% Resign a user from a game.
+
+resign_game(Query) :-
+  http_parameters(Query,
+    [ user(User, [string])
+     ,game(Game, [string])
+     ,pos(Pos, [between(1,4)]) ]),
+  send_status(resign_game(User, Game) $ Pos).
 
 
