@@ -26,8 +26,16 @@
 :- persistent
      player(name:string, game:string, pos:between(1,4)).
 
+
 %--------------------------------------------------------------------------------%
 
+
+% TBD: double-check constraints on some of the game-based predicates to make
+% sure nothing strange is going on during the requests.
+
+% TBD: reimplement a few of the game-based predicates for efficiency boosts.
+
+% TBD: implement add_action/4.
 
 % Predicates below are to be considered thread-safe *only if marked as such*.
 
@@ -91,20 +99,22 @@ create_game(User, Pos, Game, Limit, Layout, Response) :-
 %
 % joingame USERNAME:POSITION:GAMENAME
 % This allows a player to join an already created game.
+% (thread-safe)
 
 join_game(User, Pos, Game, Response) :-
-  true.
+  join_user(User, Pos, Game, Response).
 
 
-%% resign_game(+User:string, +Game:string, -Response:string) is det.
+%% resign_game(+User:string, +Game:string, +Pos:between(1,4),
+%%   -Response:string) is det.
 %
 % leavegame USERNAME:GAMENAME
 % In an inactive game, it'll remove the player from the list of players..
 % In an active game, it'll change a player to inactive, making him/her unable to
 % take any turns.
 
-resign_game(User, Game, Response) :-
-  true.
+resign_game(User, Game, Pos, Response) :-
+  remove_player(User, Game, Pos, Response).
 
 
 %% add_action(+User:string, +Game:string, +Actions:list, -Response:string) is det.
@@ -184,6 +194,7 @@ remove_user_(User) :-
   retract_user(User),
   db_sync(reload).
 
+
 %% add_game(+User:string, +Pos:between(1,4), +Game:string, +Limit:between(1,4),
 %%   +Layout:string, -Response:string) is det.
 
@@ -200,10 +211,35 @@ add_game_(Pos, Game, Limit, Layout) :-
   assert_game(Game, User, Limit, Layout).
 
 
-%% join_user(+User:string, +Pos:between(1,4), +Game:string) is det.
+%% resign_user(+User:string, +Game:string, -Response:string) is det.
 
-join_user(User, Pos, Game) :-
-  true.
+remove_player(User, Game, Pos, Response) :-
+  (  retract_player(User, Game, Pos)
+  -> response(success, Response)
+  ;  response(failure, Response)
+  ).
+
+
+%% join_user(+User:string, +Pos:between(1,4), +Game:string,
+%%   -Response:string) is det.
+
+join_user(User, Pos, Game, Response) :-
+  current_user(User),
+  (  with_mutex(game_db, join_user_(User, Pos, Game))
+  -> response(success, Response)
+  ;  response(failure, Response)
+  ).
+
+join_user_(User, Pos, Game) :-
+  % Game already exists
+  game(Game, _Host, Limit, _Layout),
+  % Player isn't already a part of the game
+  \+player(User, Game, _),
+  findall(_Player, player(_, Game, _), Players),
+  % Adding User shouldn't break the player limit
+  length(Players, Length),
+  New is Length + 1,
+  New =< Limit.
 
 
 %--------------------------------------------------------------------------------%

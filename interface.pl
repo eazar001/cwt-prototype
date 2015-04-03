@@ -13,8 +13,9 @@
 :- use_module(database).
 
 
-% TBD: Implement connection to join_game/3, resign_game/2, add_action/3.
+% TBD: Implement connection to add_action/3.
 
+% TBD: Connect remainder of db API after sufficient testing.
 
 % Basic header for plain text
 header(text/plain, 'Content-type: text/plain~n~n').
