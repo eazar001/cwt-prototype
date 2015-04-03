@@ -34,6 +34,7 @@ header(text/plain, 'Content-type: text/plain~n~n').
 :- http_handler('/ping', ping, []).
 :- http_handler('/create_game', create_game, []).
 :- http_handler('/join_game', join_game, []).
+:- http_handler('/resign_game', resign_game, []).
 
 
 %% start_server(+File:atom, +Port:between(1, 0xffff)) is semidet.

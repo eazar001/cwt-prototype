@@ -208,15 +208,21 @@ add_game(User, Pos, Game, Limit, Layout, Response) :-
 add_game_(Pos, Game, Limit, Layout) :-
   \+current_game(Game),
   string_length(Layout, Limit),
-  assert_game(Game, User, Limit, Layout).
+  assert_game(Game, User, Limit, Layout),
+  db_sync(reload).
 
 
 %% resign_user(+User:string, +Game:string, -Response:string) is det.
 
 remove_player(User, Game, Pos, Response) :-
-  (  retract_player(User, Game, Pos)
-  -> response(success, Response)
-  ;  response(failure, Response)
+  (
+     db_sync(gc),
+     retract_player(User, Game, Pos)
+  ->
+     response(success, Response),
+     db_sync(reload)
+  ;
+     response(failure, Response)
   ).
 
 
