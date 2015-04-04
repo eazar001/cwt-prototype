@@ -11,7 +11,7 @@
       ,ping/2
       ,create_game/6
       ,join_game/4
-      ,resign_game/3
+      ,resign_game/4
       ,add_action/4 ]).
 
 
@@ -32,8 +32,6 @@
 
 % TBD: double-check constraints on some of the game-based predicates to make
 % sure nothing strange is going on during the requests.
-
-% TBD: reimplement a few of the game-based predicates for efficiency boosts.
 
 % TBD: implement add_action/4.
 
@@ -126,7 +124,7 @@ resign_game(User, Game, Pos, Response) :-
 % needed.
 
 add_action(User, Game, Actions, Response) :-
-  true.
+  record_action(User, Game, Actions, Response).
 
 
 %% active_game(+Layout) is semidet.
@@ -200,15 +198,16 @@ remove_user_(User) :-
 
 add_game(User, Pos, Game, Limit, Layout, Response) :-
   current_user(User),
-  (  with_mutex(game_db, add_game_(Pos, Game, Limit, Layout))
+  (  with_mutex(game_db, add_game_(User, Pos, Game, Limit, Layout))
   -> response(success, Response)
   ;  response(failure, Response)
   ).
 
-add_game_(Pos, Game, Limit, Layout) :-
+add_game_(User, Pos, Game, Limit, Layout) :-
   \+current_game(Game),
   string_length(Layout, Limit),
   assert_game(Game, User, Limit, Layout),
+  assert_player(User, Game, Pos),
   db_sync(reload).
 
 
@@ -242,10 +241,11 @@ join_user_(User, Pos, Game) :-
   % Player isn't already a part of the game
   \+player(User, Game, _),
   findall(_Player, player(_, Game, _), Players),
+  aggregate_all(count, player(_, Game, _), Players),
   % Adding User shouldn't break the player limit
-  length(Players, Length),
-  New is Length + 1,
-  New =< Limit.
+  Players < Limit,
+  assert_player(User, Game, Pos),
+  db_sync(reload).
 
 
 %--------------------------------------------------------------------------------%
