@@ -21,17 +21,14 @@
      user(name:string).
 
 :- persistent
-     game(game:string, host:string, limit:between(1,4), layout:string).
+     game(game:string, host:string, limit:between(1,4), layout:list(atom)).
 
 :- persistent
-     player(name:string, game:string, pos:between(1,4)).
+     player(name:string, game:string, pos:between(1,4), status:atom).
 
 
 %--------------------------------------------------------------------------------%
 
-
-% TBD: double-check constraints on some of the game-based predicates to make
-% sure nothing strange is going on during the requests.
 
 % TBD: implement add_action/4.
 
@@ -78,7 +75,7 @@ ping(User, Response) :-
 
 
 %% create_game(+User:string, +Pos:between(1,4), +Game:string, Limit:between(1,4),
-%%   +Layout:string, -Response:string) is det.
+%%   +Layout:list(atom), -Response:string) is det.
 %
 % creategame USERNAME:POSITION:GAMENAME:PLAYERLIMIT:TEAMLAYOUT
 % Create a game along with the host player for the game.
@@ -107,7 +104,7 @@ join_game(User, Pos, Game, Response) :-
 %%   -Response:string) is det.
 %
 % leavegame USERNAME:GAMENAME
-% In an inactive game, it'll remove the player from the list of players..
+% In an inactive game, it'll remove the player from the list of players.
 % In an active game, it'll change a player to inactive, making him/her unable to
 % take any turns.
 
@@ -127,20 +124,15 @@ add_action(User, Game, Actions, Response) :-
   record_action(User, Game, Actions, Response).
 
 
-%% active_game(+Layout) is semidet.
+%% active_game(+Game:string) is semidet.
 %
 % Active game iff more than one team is present in the game.
 
-active_game([H|Layout]) :-
-  \+maplist(call(=,H), Layout).
-
-
-%% with_game_db(:Goal) is semidet.
-%
-% Execute any Goal while holding mutex for sections critical to game data only.
-
-with_game_db(Goal) :-
-  with_mutex(game_db, Goal).
+active_game(Game) :-
+  game(Game, _, _, Layout),
+  findall(Team,
+    (player(_, Game, Pos, active), nth1(Pos, Layout, Team)), [H|Teams]),
+  \+maplist(call(=,H), Teams).
 
 
 %--------------------------------------------------------------------------------%
@@ -182,7 +174,7 @@ add_user(User, Response) :-
 %% remove_user(+User:string, -Response:string) is det.
 
 remove_user(User, Response) :-
-  (  with_mutex(user_db, remove_user_(User))
+  (  remove_user_(User)
   -> response(success, Response)
   ;  response(failure, Response)
   ).
@@ -194,7 +186,7 @@ remove_user_(User) :-
 
 
 %% add_game(+User:string, +Pos:between(1,4), +Game:string, +Limit:between(1,4),
-%%   +Layout:string, -Response:string) is det.
+%%   +Layout:list(atom), -Response:string) is det.
 
 add_game(User, Pos, Game, Limit, Layout, Response) :-
   current_user(User),
@@ -205,46 +197,61 @@ add_game(User, Pos, Game, Limit, Layout, Response) :-
 
 add_game_(User, Pos, Game, Limit, Layout) :-
   \+current_game(Game),
-  string_length(Layout, Limit),
+  length(Layout, Limit),
   assert_game(Game, User, Limit, Layout),
-  assert_player(User, Game, Pos),
+  assert_player(User, Game, Pos, active),
   db_sync(reload).
 
 
-%% resign_user(+User:string, +Game:string, -Response:string) is det.
+%% remove_player(+User:string, +Game:string, Pos:between(1,4),
+%%   -Response:string) is det.
 
 remove_player(User, Game, Pos, Response) :-
+  with_mutex(game_db, remove_player_(User, Game, Pos, Response)).
+
+remove_player_(User, Game, Pos, Response) :-
+  player(User, Game, Pos, active),
+  db_sync(gc),
   (
-     db_sync(gc),
-     retract_player(User, Game, Pos)
+     active_game(Game)
   ->
-     response(success, Response),
-     db_sync(reload)
-  ;
-     response(failure, Response)
-  ).
+     retract_player(User, Game, Pos, active),
+     assert_player(User, Game, Pos, inactive)
+   ;
+     retract_player(User, Game, Pos, active)
+  ),
+  response(success, Response),
+  db_sync(reload), !.  % Stop here at success, anything else is failure response
+
+remove_player_(_, _, _, Response) :-
+  response(failure, Response).
 
 
 %% join_user(+User:string, +Pos:between(1,4), +Game:string,
 %%   -Response:string) is det.
 
 join_user(User, Pos, Game, Response) :-
-  current_user(User),
-  (  with_mutex(game_db, join_user_(User, Pos, Game))
-  -> response(success, Response)
-  ;  response(failure, Response)
+  (
+     current_user(User),
+     with_mutex(game_db, join_user_(User, Pos, Game))
+  ->
+     response(success, Response)
+  ;
+     response(failure, Response)
   ).
 
 join_user_(User, Pos, Game) :-
   % Game already exists
-  game(Game, _Host, Limit, _Layout),
+  game(Game, _, Limit, _),
   % Player isn't already a part of the game
-  \+player(User, Game, _),
-  findall(_Player, player(_, Game, _), Players),
-  aggregate_all(count, player(_, Game, _), Players),
-  % Adding User shouldn't break the player limit
+  \+player(User, Game, _, _),
+  % Grab all positions and the total number of active players
+  aggregate_all(bag(P)-count, player(_, Game, P, active), Ps-Players),
+  \+memberchk(Pos, Ps),
+  % Adding User or Pos shouldn't break the player limit
+  Pos =< Limit,
   Players < Limit,
-  assert_player(User, Game, Pos),
+  assert_player(User, Game, Pos, active),
   db_sync(reload).
 
 

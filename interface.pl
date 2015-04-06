@@ -120,7 +120,10 @@ create_game(Query) :-
      ,game(Game, [string])
      ,limit(Limit, [between(1,4)])
      ,layout(Layout, [string]) ]),
-  send_status(create_game(User, Pos, Game, Limit) $ Layout).
+  Code_char_lower = (\Code^Char^
+    (to_lower(Code, Lower), char_code(Char, Lower))),
+  send_status(create_game(User, Pos, Game, Limit) $
+    maplist(Code_char_lower) $ string_codes $ Layout).
 
 
 %% join_game(+Query:compound) is det.
