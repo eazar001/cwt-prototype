@@ -189,10 +189,13 @@ remove_user_(User) :-
 %%   +Layout:list(atom), -Response:string) is det.
 
 add_game(User, Pos, Game, Limit, Layout, Response) :-
-  current_user(User),
-  (  with_mutex(game_db, add_game_(User, Pos, Game, Limit, Layout))
-  -> response(success, Response)
-  ;  response(failure, Response)
+  (
+     current_user(User),
+     with_mutex(game_db, add_game_(User, Pos, Game, Limit, Layout))
+  ->
+     response(success, Response)
+  ;
+     response(failure, Response)
   ).
 
 add_game_(User, Pos, Game, Limit, Layout) :-
@@ -210,9 +213,9 @@ remove_player(User, Game, Pos, Response) :-
   with_mutex(game_db, remove_player_(User, Game, Pos, Response)).
 
 remove_player_(User, Game, Pos, Response) :-
-  player(User, Game, Pos, active),
-  db_sync(gc),
   (
+     player(User, Game, Pos, active),
+     db_sync(gc),
      active_game(Game)
   ->
      retract_player(User, Game, Pos, active),
