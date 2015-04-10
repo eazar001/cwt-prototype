@@ -10,12 +10,21 @@
 :- use_module(library(lambda)).
 :- use_module(library(mavis)).
 :- use_module(library(func)).
+:- use_module(library(typedef)).
 :- use_module(database).
 
 
-% TBD: Implement connection to add_action/3.
+:- type user ---> user(string).
 
-% TBD: Connect remainder of db API after sufficient testing.
+:- type position ---> pos(between(1,4)).
+
+:- type limit ---> limit(between(1,4)).
+
+:- type game ---> game(string, string, limit, list(atom)).
+
+:- type player ---> player(string, string, position, atom).
+
+:- type action(T) ---> action(T).
 
 % Basic header for plain text
 header(text/plain, 'Content-type: text/plain~n~n').
@@ -88,7 +97,7 @@ disconnect :-
 
 login(Query) :-
   http_parameters(Query, [name(User, [string])]),
-  send_status(login $ User).
+  send_status(login $ user(User)).
 
 
 %% login(+Query:compound) is det.
@@ -97,7 +106,7 @@ login(Query) :-
 
 logout(Query) :-
   http_parameters(Query, [name(User, [string])]),
-  send_status(logout $ User).
+  send_status(logout $ user(User)).
 
 
 %% ping(+Query:compound) is det.
@@ -106,7 +115,7 @@ logout(Query) :-
 
 ping(Query) :-
   http_parameters(Query, [name(User, [string])]),
-  send_status(ping $ User).
+  send_status(ping $ user(User)).
 
 
 %% create_game(+Query:compound) is det.
@@ -122,8 +131,9 @@ create_game(Query) :-
      ,layout(Layout, [string]) ]),
   Code_char_lower = (\Code^Char^
     (to_lower(Code, Lower), char_code(Char, Lower))),
-  send_status(create_game(User, Pos, Game, Limit) $
-    maplist(Code_char_lower) $ string_codes $ Layout).
+  Layout_codes = maplist(Code_char_lower) $ string_codes $ Layout,
+  send_status(create_game(game(User, Game, limit(Limit), Layout_codes)) $
+    pos(Pos)).
 
 
 %% join_game(+Query:compound) is det.
@@ -135,7 +145,7 @@ join_game(Query) :-
     [ user(User, [string])
      ,pos(Pos, [between(1,4)])
      ,game(Game, [string]) ]),
-  send_status(join_game(User, Pos) $ Game).
+  send_status(join_game(user(User), pos(Pos)) $ Game).
 
 
 %% resign_game(+Query:compound) is det.
@@ -147,6 +157,6 @@ resign_game(Query) :-
     [ user(User, [string])
      ,game(Game, [string])
      ,pos(Pos, [between(1,4)]) ]),
-  send_status(resign_game(User, Game) $ Pos).
+  send_status(resign_game(user(User), Game) $ pos(Pos)).
 
 

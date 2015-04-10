@@ -9,7 +9,7 @@
       ,login/2
       ,logout/2
       ,ping/2
-      ,create_game/6
+      ,create_game/3
       ,join_game/4
       ,resign_game/4
       ,add_action/4 ]).
@@ -21,10 +21,10 @@
      user(name:string).
 
 :- persistent
-     game(game:string, host:string, limit:between(1,4), layout:list(atom)).
+     game(game:string, host:string, lim:limit, layout:list(atom)).
 
 :- persistent
-     player(name:string, game:string, pos:between(1,4), status:atom).
+     player(name:string, game:string, pos:position, status:atom).
 
 
 %--------------------------------------------------------------------------------%
@@ -41,41 +41,40 @@ attach_db(File) :-
   db_attach(File, []).
 
 
-%% login(+User:string, -Response:string) is det.
+%% login(+User:user, -Response:string) is det.
 %
 % A user has attempted to login via login USERNAME. The status of the login will
 % be unified with the appropriate Response. (thread-safe)
 
-login(User, Response) :-
+login(user(User), Response) :-
   with_mutex(user_db, add_user(User, Response)).
 
 
-%% logout(+User:string, -Response:string) is det.
+%% logout(+User:user, -Response:string) is det.
 %
 % A user has attempted to logout via logout USERNAME. The status of the logout
 % will be unified with the appropriate Response. If the user already exists then
 % response should be be success and User will be retracted from the database.
 % (thread-safe)
 
-logout(User, Response) :-
+logout(user(User), Response) :-
   remove_user(User, Response).
 
 
-%% ping(+User:string, -Response:string) is det.
+%% ping(+User:user, -Response:string) is det.
 %
 % ping USERNAME
 % This updates a user token in the database, useful for keeping a user logged in.
 % (thread-safe)
 
-ping(User, Response) :-
+ping(user(User), Response) :-
   (  current_user(User)
   -> response(success, Response)
   ;  response(failure, Response)
   ).
 
 
-%% create_game(+User:string, +Pos:between(1,4), +Game:string, Limit:between(1,4),
-%%   +Layout:list(atom), -Response:string) is det.
+%% create_game(+Game:game, +Pos:position, -Response:string) is det.
 %
 % creategame USERNAME:POSITION:GAMENAME:PLAYERLIMIT:TEAMLAYOUT
 % Create a game along with the host player for the game.
@@ -85,30 +84,30 @@ ping(User, Response) :-
 % Teamlayout = Layout of the teams {"AB" would mean p1 is Team A and p2 is Team B.
 % (thread-safe)
 
-create_game(User, Pos, Game, Limit, Layout, Response) :-
-  add_game(User, Pos, Game, Limit, Layout, Response).
+create_game(Game, Pos, Response) :-
+  Game = game(User, Title, Limit, Layout),
+  add_game(User, Pos, Title, Limit, Layout, Response).
 
 
-%% join_game(+User:string, +Pos:between(1,4), +Game:string,
+%% join_game(+User:user, +Pos:position, +Game:string,
 %%   -Response:string) is det.
 %
 % joingame USERNAME:POSITION:GAMENAME
 % This allows a player to join an already created game.
 % (thread-safe)
 
-join_game(User, Pos, Game, Response) :-
+join_game(user(User), Pos, Game, Response) :-
   join_user(User, Pos, Game, Response).
 
 
-%% resign_game(+User:string, +Game:string, +Pos:between(1,4),
-%%   -Response:string) is det.
+%% resign_game(+User:user, +Game:string, +Pos:position, -Response:string) is det.
 %
 % leavegame USERNAME:GAMENAME
 % In an inactive game, it'll remove the player from the list of players.
 % In an active game, it'll change a player to inactive, making him/her unable to
 % take any turns.
 
-resign_game(User, Game, Pos, Response) :-
+resign_game(user(User), Game, Pos, Response) :-
   remove_player(User, Game, Pos, Response).
 
 
@@ -185,7 +184,7 @@ remove_user_(User) :-
   db_sync(reload).
 
 
-%% add_game(+User:string, +Pos:between(1,4), +Game:string, +Limit:between(1,4),
+%% add_game(+User:string, +Pos:position, +Game:string, +Limit:limit,
 %%   +Layout:list(atom), -Response:string) is det.
 
 add_game(User, Pos, Game, Limit, Layout, Response) :-
@@ -198,15 +197,15 @@ add_game(User, Pos, Game, Limit, Layout, Response) :-
      response(failure, Response)
   ).
 
-add_game_(User, Pos, Game, Limit, Layout) :-
+add_game_(User, Pos, Game, limit(Limit), Layout) :-
   \+current_game(Game),
   length(Layout, Limit),
-  assert_game(Game, User, Limit, Layout),
+  assert_game(Game, User, limit(Limit), Layout),
   assert_player(User, Game, Pos, active),
   db_sync(reload).
 
 
-%% remove_player(+User:string, +Game:string, Pos:between(1,4),
+%% remove_player(+User:string, +Game:string, Pos:position,
 %%   -Response:string) is det.
 
 remove_player(User, Game, Pos, Response) :-
@@ -230,8 +229,7 @@ remove_player_(_, _, _, Response) :-
   response(failure, Response).
 
 
-%% join_user(+User:string, +Pos:between(1,4), +Game:string,
-%%   -Response:string) is det.
+%% join_user(+User:string, +Pos:position, +Game:string, -Response:string) is det.
 
 join_user(User, Pos, Game, Response) :-
   (
@@ -245,7 +243,7 @@ join_user(User, Pos, Game, Response) :-
 
 join_user_(User, Pos, Game) :-
   % Game already exists
-  game(Game, _, Limit, _),
+  game(Game, _, limit(Limit), _),
   % Player isn't already a part of the game
   \+player(User, Game, _, _),
   % Grab all positions and the total number of active players
