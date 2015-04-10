@@ -130,7 +130,7 @@ add_action(User, Game, Actions, Response) :-
 active_game(Game) :-
   game(Game, _, _, Layout),
   findall(Team,
-    (player(_, Game, Pos, active), nth1(Pos, Layout, Team)), [H|Teams]),
+    (player(_, Game, pos(Pos), active), nth1(Pos, Layout, Team)), [H|Teams]),
   \+maplist(call(=,H), Teams).
 
 
@@ -250,7 +250,8 @@ join_user_(User, Pos, Game) :-
   aggregate_all(bag(P)-count, player(_, Game, P, active), Ps-Players),
   \+memberchk(Pos, Ps),
   % Adding User or Pos shouldn't break the player limit
-  Pos =< Limit,
+  Pos = pos(Slot),
+  Slot =< Limit,
   Players < Limit,
   assert_player(User, Game, Pos, active),
   db_sync(reload).
