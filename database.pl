@@ -16,6 +16,7 @@
 
 
 :- use_module(library(persistency)).
+:- use_module(library(mavis)).
 
 :- persistent
      user(name:string).
@@ -106,6 +107,7 @@ join_game(user(User), Pos, Game, Response) :-
 % In an inactive game, it'll remove the player from the list of players.
 % In an active game, it'll change a player to inactive, making him/her unable to
 % take any turns.
+% (thread-safe)
 
 resign_game(user(User), Game, Pos, Response) :-
   remove_player(User, Game, Pos, Response).
@@ -114,7 +116,7 @@ resign_game(user(User), Game, Pos, Response) :-
 %% add_action(+User:string, +Game:string, +Actions:list, -Response:string) is det.
 %
 % addaction USERNAME:GAMENAME:P(0):P(1):...:P(n)
-% This allows to player to push actions into the action list. An empty list will
+% This allows a player to push actions into the action list. An empty list will
 % change to the next player turn.
 % P(n): A section of a string, int, or float array. Can extend to as many as
 % needed.

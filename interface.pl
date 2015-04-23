@@ -24,7 +24,7 @@
 
 :- type player ---> player(string, string, position, atom).
 
-:- type action(T) ---> action(T).
+:- type action(T) ---> act(T).
 
 % Basic header for plain text
 header(text/plain, 'Content-type: text/plain~n~n').
