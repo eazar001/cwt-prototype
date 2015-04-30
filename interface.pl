@@ -54,6 +54,7 @@ header(text/plain, 'Content-type: text/plain~n~n').
 start_server(File, Port) :-
   must_be(between(1, 0xffff), Port),
   attach_db(File),
+  db_sync(gc),
   asserta(port(Port)),
   http_server(http_dispatch, [port(Port)]).
 

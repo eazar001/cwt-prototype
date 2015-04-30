@@ -16,7 +16,6 @@
 
 
 :- use_module(library(persistency)).
-:- use_module(library(mavis)).
 
 :- persistent
      user(name:string).
@@ -167,7 +166,6 @@ add_user(User, Response) :-
      response(failure, Response)
   ;
      assert_user(User),
-     db_sync(reload),
      response(success, Response)
   ).
 
@@ -175,15 +173,10 @@ add_user(User, Response) :-
 %% remove_user(+User:string, -Response:string) is det.
 
 remove_user(User, Response) :-
-  (  remove_user_(User)
+  (  retract_user(User)
   -> response(success, Response)
   ;  response(failure, Response)
   ).
-
-remove_user_(User) :-
-  db_sync(gc),
-  retract_user(User),
-  db_sync(reload).
 
 
 %% add_game(+User:string, +Pos:position, +Game:string, +Limit:limit,
@@ -203,8 +196,7 @@ add_game_(User, Pos, Game, limit(Limit), Layout) :-
   \+current_game(Game),
   length(Layout, Limit),
   assert_game(Game, User, limit(Limit), Layout),
-  assert_player(User, Game, Pos, active),
-  db_sync(reload).
+  assert_player(User, Game, Pos, active).
 
 
 %% remove_player(+User:string, +Game:string, Pos:position,
@@ -216,7 +208,6 @@ remove_player(User, Game, Pos, Response) :-
 remove_player_(User, Game, Pos, Response) :-
   (
      player(User, Game, Pos, active),
-     db_sync(gc),
      active_game(Game)
   ->
      retract_player(User, Game, Pos, active),
@@ -224,8 +215,7 @@ remove_player_(User, Game, Pos, Response) :-
    ;
      retract_player(User, Game, Pos, active)
   ),
-  response(success, Response),
-  db_sync(reload), !.  % Stop here at success, anything else is failure response
+  response(success, Response), !.  % Stop here, anything else is failure response
 
 remove_player_(_, _, _, Response) :-
   response(failure, Response).
@@ -243,6 +233,7 @@ join_user(User, Pos, Game, Response) :-
      response(failure, Response)
   ).
 
+
 join_user_(User, Pos, Game) :-
   % Game already exists
   game(Game, _, limit(Limit), _),
@@ -255,8 +246,7 @@ join_user_(User, Pos, Game) :-
   Pos = pos(Slot),
   Slot =< Limit,
   Players < Limit,
-  assert_player(User, Game, Pos, active),
-  db_sync(reload).
+  assert_player(User, Game, Pos, active).
 
 
 %--------------------------------------------------------------------------------%
