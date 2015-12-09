@@ -130,8 +130,11 @@ add_action(User, Game, Actions, Response) :-
 
 active_game(Game) :-
   game(Game, _, _, Layout),
-  findall(Team,
-    (player(_, Game, pos(Pos), active), nth1(Pos, Layout, Team)), [H|Teams]),
+  findall(
+    Team,
+    (  player(_, Game, pos(Pos), active), nth1(Pos, Layout, Team)  ),
+    [H|Teams]
+  ),
   \+maplist(call(=,H), Teams).
 
 
@@ -160,12 +163,9 @@ current_game(Game) :-
 %% add_user(+User:string, -Response:string) is det.
 
 add_user(User, Response) :-
-  (
-     current_user(User)
-  ->
-     response(failure, Response)
-  ;
-     assert_user(User),
+  (  current_user(User)
+  -> response(failure, Response)
+  ;  assert_user(User),
      response(success, Response)
   ).
 
@@ -183,13 +183,10 @@ remove_user(User, Response) :-
 %%   +Layout:list(atom), -Response:string) is det.
 
 add_game(User, Pos, Game, Limit, Layout, Response) :-
-  (
-     current_user(User),
+  (  current_user(User),
      with_mutex(game_db, add_game_(User, Pos, Game, Limit, Layout))
-  ->
-     response(success, Response)
-  ;
-     response(failure, Response)
+  -> response(success, Response)
+  ;  response(failure, Response)
   ).
 
 add_game_(User, Pos, Game, limit(Limit), Layout) :-
@@ -206,14 +203,11 @@ remove_player(User, Game, Pos, Response) :-
   with_mutex(game_db, remove_player_(User, Game, Pos, Response)).
 
 remove_player_(User, Game, Pos, Response) :-
-  (
-     player(User, Game, Pos, active),
+  (  player(User, Game, Pos, active),
      active_game(Game)
-  ->
-     retract_player(User, Game, Pos, active),
+  -> retract_player(User, Game, Pos, active),
      assert_player(User, Game, Pos, inactive)
-   ;
-     retract_player(User, Game, Pos, active)
+  ;  retract_player(User, Game, Pos, active)
   ),
   response(success, Response), !.  % Stop here, anything else is failure response
 
@@ -224,13 +218,10 @@ remove_player_(_, _, _, Response) :-
 %% join_user(+User:string, +Pos:position, +Game:string, -Response:string) is det.
 
 join_user(User, Pos, Game, Response) :-
-  (
-     current_user(User),
+  (  current_user(User),
      with_mutex(game_db, join_user_(User, Pos, Game))
-  ->
-     response(success, Response)
-  ;
-     response(failure, Response)
+  -> response(success, Response)
+  ;  response(failure, Response)
   ).
 
 

@@ -131,7 +131,7 @@ create_game(Query) :-
      ,limit(Limit, [between(1,4)])
      ,layout(Layout, [string]) ]),
   Code_char_lower = (\Code^Char^
-    (to_lower(Code, Lower), char_code(Char, Lower))),
+    (  to_lower(Code, Lower), char_code(Char, Lower)  )),
   Layout_codes = maplist(Code_char_lower) $ string_codes $ Layout,
   send_status(create_game(game(User, Game, limit(Limit), Layout_codes)) $
     pos(Pos)).
