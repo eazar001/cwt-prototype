@@ -1,4 +1,3 @@
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CWT-Prolog Server Interface %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -48,8 +47,8 @@ header(text/plain, 'Content-type: text/plain~n~n').
 
 %% start_server(+File:atom, +Port:between(1, 0xffff)) is semidet.
 %
-% Attach to the specified database file, and start the server on the specified
-% port.
+%  Attach to the specified database file, and start the server on the specified
+%  port.
 
 start_server(File, Port) :-
   must_be(between(1, 0xffff), Port),
@@ -61,7 +60,7 @@ start_server(File, Port) :-
 
 %% server_status(+Request) is det.
 %
-% Friendly message to let client know that the server is up.
+%  Friendly message to let client know that the server is up.
 
 server_status(_Request) :-
   format(header $ text/plain),
@@ -70,7 +69,7 @@ server_status(_Request) :-
 
 %% send_status(+Status:string) is det.
 %
-% Takes a response status and sends the information to the client.
+%  Takes a response status and sends the information to the client.
 
 send_status(Status) :-
   format(header $ text/plain),
@@ -79,7 +78,7 @@ send_status(Status) :-
 
 %% disconnect is det.
 %
-% Shut down server on specified port and clean up information from top level.
+%  Shut down server on specified port and clean up information from top level.
 
 disconnect :-
   port(Port),
@@ -94,7 +93,7 @@ disconnect :-
 
 %% login(+Query:compound) is det.
 %
-% Attempt login and send status back to client.
+%  Attempt login and send status back to client.
 
 login(Query) :-
   http_parameters(Query, [name(User, [string])]),
@@ -103,7 +102,7 @@ login(Query) :-
 
 %% login(+Query:compound) is det.
 %
-% Attempt logout and send status back to client.
+%  Attempt logout and send status back to client.
 
 logout(Query) :-
   http_parameters(Query, [name(User, [string])]),
@@ -112,7 +111,7 @@ logout(Query) :-
 
 %% ping(+Query:compound) is det.
 %
-% Receive ping from client with username.
+%  Receive ping from client with username.
 
 ping(Query) :-
   http_parameters(Query, [name(User, [string])]),
@@ -121,7 +120,7 @@ ping(Query) :-
 
 %% create_game(+Query:compound) is det.
 %
-% Create a game if all internal restrictions are met for creation.
+%  Create a game if all internal restrictions are met for creation.
 
 create_game(Query) :-
   http_parameters(Query,
@@ -139,7 +138,7 @@ create_game(Query) :-
 
 %% join_game(+Query:compound) is det.
 %
-% Allow a user to join a game if all internal restrictions are met for admission.
+%  Allow a user to join a game if all internal restrictions are met for admission.
 
 join_game(Query) :-
   http_parameters(Query,
@@ -151,7 +150,7 @@ join_game(Query) :-
 
 %% resign_game(+Query:compound) is det.
 %
-% Resign a user from a game.
+%  Resign a user from a game.
 
 resign_game(Query) :-
   http_parameters(Query,
@@ -159,5 +158,3 @@ resign_game(Query) :-
      ,game(Game, [string])
      ,pos(Pos, [between(1,4)]) ]),
   send_status(resign_game(user(User), Game) $ pos(Pos)).
-
-
