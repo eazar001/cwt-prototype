@@ -10,8 +10,7 @@
     ping/2,
     create_game/3,
     join_game/4,
-    resign_game/4,
-    add_action/4
+    resign_game/4
 ]).
 
 
@@ -29,8 +28,6 @@
 
 %--------------------------------------------------------------------------------%
 
-
-% TBD: implement add_action/4.
 
 % Predicates below are to be considered thread-safe *only if marked as such*.
 
@@ -98,16 +95,6 @@ join_game(user(User), Pos, Game, Response) :-
 resign_game(user(User), Game, Pos, Response) :-
     remove_player(User, Game, Pos, Response).
 
-%% add_action(+User:string, +Game:string, +Actions:list, -Response:string) is det.
-%
-%  addaction USERNAME:GAMENAME:P(0):P(1):...:P(n)
-%  This allows a player to push actions into the action list. An empty list will
-%  change to the next player turn.
-%  P(n): A section of a string, int, or float array. Can extend to as many as
-%  needed.
-add_action(User, Game, Actions, Response) :-
-  record_action(User, Game, Actions, Response).
-
 %% active_game(+Game:string) is semidet.
 %
 %  Active game iff more than one team is present in the game.
@@ -157,7 +144,6 @@ remove_user(User, Response) :-
 
 %% add_game(+User:string, +Pos:position, +Game:string, +Limit:limit,
 %%   +Layout:list(atom), -Response:string) is det.
-
 add_game(User, Pos, Game, Limit, Layout, Response) :-
     (   current_user(User),
         with_mutex(game_db, add_game_(User, Pos, Game, Limit, Layout))
@@ -172,8 +158,7 @@ add_game_(User, Pos, Game, limit(Limit), Layout) :-
     assert_player(User, Game, Pos, active).
 
 
-%% remove_player(+User:string, +Game:string, Pos:position,
-%%   -Response:string) is det.
+%% remove_player(+User:string, +Game:string, Pos:position, -Response:string) is det.
 remove_player(User, Game, Pos, Response) :-
     with_mutex(game_db, remove_player_(User, Game, Pos, Response)).
 
@@ -197,19 +182,18 @@ join_user(User, Pos, Game, Response) :-
     ;   response(failure, Response)
     ).
 
-join_user_(User, Pos, Game) :-
+join_user_(User, pos(Slot), GameName) :-
     % Game already exists
-    game(Game, _, limit(Limit), _),
+    game(GameName, _, limit(Limit), _),
     % Player isn't already a part of the game
-    \+ player(User, Game, _, _),
+    \+ player(User, GameName, _, _),
     % Grab all positions and the total number of active players
-    aggregate_all(bag(P)-count, player(_, Game, P, active), Ps-Players),
-    \+ memberchk(Pos, Ps),
+    aggregate_all(bag(P)-count, player(_, GameName, P, active), Ps-Players),
+    \+ member(pos(Slot), Ps),
     % Adding User or Pos shouldn't break the player limit
-    Pos = pos(Slot),
     Slot =< Limit,
     Players < Limit,
-    assert_player(User, Game, Pos, active).
+    assert_player(User, GameName, pos(Slot), active).
 
 
 %--------------------------------------------------------------------------------%

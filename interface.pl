@@ -59,7 +59,6 @@ send_status(Status) :-
 %% disconnect is det.
 %
 %  Shut down server on specified port and clean up information from top level.
-
 disconnect :-
     port(Port),
     http_stop_server(Port, []),
